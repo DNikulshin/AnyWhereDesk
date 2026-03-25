@@ -1,0 +1,54 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: guacamole_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: guacamole_db
+      POSTGRES_USER: guac_user
+      POSTGRES_PASSWORD: guac_pass_123
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init:/docker-entrypoint-initdb.d
+    networks:
+      - internal
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U guac_user -d guacamole_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  guacd:
+    image: guacamole/guacd:latest
+    container_name: guacd
+    restart: unless-stopped
+    networks:
+      - internal
+
+  guacamole:
+    image: guacamole/guacamole:latest
+    container_name: guacamole
+    restart: unless-stopped
+    environment:
+      GUACD_HOSTNAME: guacd
+      POSTGRESQL_HOSTNAME: postgres
+      POSTGRESQL_PORT: 5432
+      POSTGRESQL_DATABASE: guacamole_db
+      POSTGRESQL_USERNAME: guac_user
+      POSTGRESQL_PASSWORD: guac_pass_123
+    ports:
+      - "8080:8080"
+    depends_on:
+      - guacd
+      - postgres
+    networks:
+      - internal
+
+networks:
+  internal:
+    driver: bridge
+
+volumes:
+  postgres_data:

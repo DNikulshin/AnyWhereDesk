@@ -1,0 +1,116 @@
+name: Test AnywhereDesk Stack
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Generate Guacamole DB schema (if missing)
+        run: |
+          mkdir -p init
+          if [ ! -f init/initdb.sql ]; then
+            docker run --rm guacamole/guacamole /opt/guacamole/bin/initdb.sh --postgresql > init/initdb.sql
+          fi
+
+      - name: Install docker-compose
+        run: sudo apt-get update && sudo apt-get install -y docker-compose
+
+      - name: Start main stack
+        uses: docker/compose-action@v2
+        with:
+          compose-file: docker-compose.yml
+          up-flags: -d
+
+      - name: Wait for services to be ready
+        run: |
+          echo "Waiting for PostgreSQL..."
+          for i in {1..30}; do
+            docker exec guacamole_db pg_isready -U guac_user && break
+            sleep 2
+          done
+          echo "Waiting for Guacamole..."
+          for i in {1..30}; do
+            curl --fail http://localhost:8080/guacamole/ && break
+            sleep 2
+          done
+
+      - name: Start test RDP server in the same network
+        run: |
+          docker run -d --name test-rdp --network internal danielguerra/ubuntu-xrdp
+          sleep 15
+          docker exec test-rdp useradd -m ubuntu 2>/dev/null || true
+          docker exec test-rdp sh -c "echo 'ubuntu:ubuntu' | chpasswd"
+
+      - name: Check RDP port accessibility from Guacamole
+        run: |
+          docker exec guacamole bash -c "timeout 2 bash -c 'echo > /dev/tcp/test-rdp/3389' 2>&1 && echo OK || exit 1"
+
+      - name: Install Python3 and requests
+        run: sudo apt-get update && sudo apt-get install -y python3 python3-requests
+
+      - name: Test Guacamole API and create RDP connection
+        run: |
+          python3 - <<EOF
+          import requests
+          import time
+
+          base_url = "http://localhost:8080/guacamole"
+          login_data = {
+              'username': 'guacadmin',
+              'password': 'guacadmin'
+          }
+
+          session = requests.Session()
+          resp = session.post(f'{base_url}/api/tokens', data=login_data)
+          if resp.status_code != 200:
+              print('Login failed:', resp.text)
+              exit(1)
+          token = resp.json()['authToken']
+          data_source = resp.json()['dataSource']
+          print(f'Logged in, token={token}, dataSource={data_source}')
+
+          connection = {
+              'name': 'Test RDP',
+              'protocol': 'rdp',
+              'parameters': {
+                  'hostname': 'test-rdp',
+                  'port': '3389',
+                  'username': 'ubuntu',
+                  'password': 'ubuntu',
+                  'security': 'rdp'
+              }
+          }
+          headers = {'Guacamole-Token': token}
+          resp = session.post(f'{base_url}/api/session/data/{data_source}/connections',
+                              json=connection, headers=headers)
+          if resp.status_code != 200:
+              print('Failed to create connection:', resp.text)
+              exit(1)
+          conn_id = resp.json()['identifier']
+          print(f'Created connection: {conn_id}')
+
+          resp = session.get(f'{base_url}/api/session/data/{data_source}/connections/{conn_id}',
+                             headers=headers)
+          if resp.status_code != 200:
+              print('Failed to retrieve connection details:', resp.text)
+              exit(1)
+          print('Connection details retrieved successfully.')
+          EOF
+
+      - name: Stop and clean up
+        if: always()
+        run: |
+          docker-compose down
+          docker rm -f test-rdp 2>/dev/null || true
