@@ -28,10 +28,7 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y docker-compose
 
       - name: Start main stack
-        uses: docker/compose-action@v2
-        with:
-          compose-file: docker-compose.yml
-          up-flags: -d
+        run: docker-compose up -d
 
       - name: Wait for services to be ready
         run: |
