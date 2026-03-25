@@ -65,8 +65,6 @@ jobs:
         run: |
           # Debug: show processes inside test-rdp
           docker exec test-rdp ps aux
-          # Check if port is listening inside container
-          docker exec test-rdp netstat -tlnp 2>/dev/null || docker exec test-rdp ss -tlnp
           # Test from Guacamole
           docker exec guacamole bash -c "timeout 2 bash -c 'echo > /dev/tcp/test-rdp/3389' 2>&1 && echo OK || exit 1"
 
