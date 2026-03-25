@@ -45,13 +45,29 @@ jobs:
 
       - name: Start test RDP server in the same network
         run: |
+          # Ensure network exists
+          docker network inspect internal >/dev/null 2>&1 || docker network create internal
+          # Run container
           docker run -d --name test-rdp --network internal danielguerra/ubuntu-xrdp
-          sleep 15
+          # Wait for container to be ready (max 30 seconds)
+          for i in {1..30}; do
+            if docker exec test-rdp pgrep xrdp >/dev/null 2>&1; then
+              echo "xrdp is running"
+              break
+            fi
+            sleep 1
+          done
+          # Set password for ubuntu user (create if needed)
           docker exec test-rdp useradd -m ubuntu 2>/dev/null || true
           docker exec test-rdp sh -c "echo 'ubuntu:ubuntu' | chpasswd"
 
       - name: Check RDP port accessibility from Guacamole
         run: |
+          # Debug: show processes inside test-rdp
+          docker exec test-rdp ps aux
+          # Check if port is listening inside container
+          docker exec test-rdp netstat -tlnp 2>/dev/null || docker exec test-rdp ss -tlnp
+          # Test from Guacamole
           docker exec guacamole bash -c "timeout 2 bash -c 'echo > /dev/tcp/test-rdp/3389' 2>&1 && echo OK || exit 1"
 
       - name: Install Python3 and requests
