@@ -97,7 +97,8 @@ jobs:
                   'username': 'ubuntu',
                   'password': 'ubuntu',
                   'security': 'rdp'
-              }
+              },
+              'attributes': {}
           }
 
           headers = {'Guacamole-Token': token}
