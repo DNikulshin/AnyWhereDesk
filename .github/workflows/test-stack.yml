@@ -75,9 +75,9 @@ jobs:
           RDP_IP=$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' test-rdp)
           echo "test-rdp IP: $RDP_IP"
 
-          # Test from Guacamole using bash socket with IP
-          echo "=== Testing from Guacamole to $RDP_IP:3389 ==="
-          docker exec guacamole bash -c "timeout 2 bash -c 'echo > /dev/tcp/$RDP_IP/3389' 2>&1 && echo OK || exit 1"
+          # Use a temporary alpine container to test port (has netcat)
+          echo "=== Testing from temporary alpine container to $RDP_IP:3389 ==="
+          docker run --rm --network internal alpine sh -c "nc -zv $RDP_IP 3389" || exit 1
 
       - name: Install Python3 and requests
         run: sudo apt-get update && sudo apt-get install -y python3 python3-requests
