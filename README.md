@@ -22,6 +22,14 @@ AnywhereDesk – это само‑хостинговое решение для 
   - Git, Docker, Docker Compose.
   - (Опционально) GitHub Actions для CI.
 
+  ## Автоматическая установка (Windows)
+
+1. Скачайте или клонируйте репозиторий.
+2. Запустите PowerShell от имени администратора и выполните:
+   ```powershell
+   Set-ExecutionPolicy RemoteSigned -Scope Process
+   .\setup.ps1
+
 ## Быстрый старт (локальное тестирование)
 
 Вы можете протестировать стек на любом ПК с Docker, не открывая порты наружу.
