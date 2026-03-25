@@ -45,11 +45,8 @@ jobs:
 
       - name: Start test RDP server in the same network
         run: |
-          # Ensure network exists
           docker network inspect internal >/dev/null 2>&1 || docker network create internal
-          # Run container
           docker run -d --name test-rdp --network internal danielguerra/ubuntu-xrdp
-          # Wait for container to be ready (max 30 seconds)
           for i in {1..30}; do
             if docker exec test-rdp pgrep xrdp >/dev/null 2>&1; then
               echo "xrdp is running"
@@ -57,26 +54,13 @@ jobs:
             fi
             sleep 1
           done
-          # Set password for ubuntu user (create if needed)
           docker exec test-rdp useradd -m ubuntu 2>/dev/null || true
           docker exec test-rdp sh -c "echo 'ubuntu:ubuntu' | chpasswd"
 
       - name: Check RDP port accessibility from Guacamole
         run: |
-          # Show processes inside test-rdp
-          echo "=== Processes in test-rdp ==="
-          docker exec test-rdp ps aux
-
-          # Check if xrdp listens inside container
-          echo "=== Check inside test-rdp: port 3389 ==="
-          docker exec test-rdp sh -c "timeout 2 bash -c 'echo > /dev/tcp/localhost/3389' 2>&1 && echo 'OK: port 3389 reachable inside container' || echo 'FAIL: port 3389 NOT reachable inside container'"
-
-          # Get IP of test-rdp
           RDP_IP=$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' test-rdp)
           echo "test-rdp IP: $RDP_IP"
-
-          # Use a temporary alpine container to test port (has netcat)
-          echo "=== Testing from temporary alpine container to $RDP_IP:3389 ==="
           docker run --rm --network internal alpine sh -c "nc -zv $RDP_IP 3389" || exit 1
 
       - name: Install Python3 and requests
@@ -86,7 +70,8 @@ jobs:
         run: |
           python3 - <<EOF
           import requests
-          import time
+          import json
+          import subprocess
 
           base_url = "http://localhost:8080/guacamole"
           login_data = {
@@ -114,12 +99,18 @@ jobs:
                   'security': 'rdp'
               }
           }
+
           headers = {'Guacamole-Token': token}
           resp = session.post(f'{base_url}/api/session/data/{data_source}/connections',
                               json=connection, headers=headers)
+
           if resp.status_code != 200:
               print('Failed to create connection:', resp.text)
+              print('Status code:', resp.status_code)
+              print("\n=== Guacamole logs (last 30 lines) ===")
+              subprocess.run(['docker', 'logs', 'guacamole', '--tail', '30'])
               exit(1)
+
           conn_id = resp.json()['identifier']
           print(f'Created connection: {conn_id}')
 
