@@ -1,4 +1,4 @@
-#Requires -RunAsAdministrator
+﻿#Requires -RunAsAdministrator
 <#
 .SYNOPSIS
     Stage 2 / 4 — Установка WSL2 + Ubuntu (headless)

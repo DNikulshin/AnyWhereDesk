@@ -1,4 +1,4 @@
-#Requires -RunAsAdministrator
+﻿#Requires -RunAsAdministrator
 <#
 .SYNOPSIS
     Stage 4 / 4 — Автозапуск Docker + Guacamole при старте Windows

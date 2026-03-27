@@ -1,4 +1,4 @@
-#Requires -RunAsAdministrator
+﻿#Requires -RunAsAdministrator
 <#
 .SYNOPSIS
     Stage 3 / 4 — Настройка пользователя WSL Ubuntu (headless, без GUI)

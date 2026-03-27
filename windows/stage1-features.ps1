@@ -1,4 +1,4 @@
-#Requires -RunAsAdministrator
+﻿#Requires -RunAsAdministrator
 <#
 .SYNOPSIS
     Stage 1 / 4 — Включение компонентов Windows для WSL2 + Docker
