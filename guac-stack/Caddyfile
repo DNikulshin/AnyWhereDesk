@@ -7,14 +7,16 @@
     email your@email.com      # Замени на свой email (для уведомлений Let's Encrypt)
     admin off
 
-    # ── Вариант 1 (рекомендуется): API Token ──────────────
-    # Создаётся на cloudflare.com → My Profile → API Tokens
-    acme_dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+    # ── Текущий режим: HTTP-01 challenge (порт 80) ─────────
+    # Caddy получает Let's Encrypt сертификат автоматически.
+    # Требования: порты 80 и 443 проброшены на этот хост,
+    # A-запись домена указывает на внешний IP.
 
-    # ── Вариант 2: Global API Key ──────────────────────────
-    # Использовать если API Token недоступен (см. cloudflare-guide.md)
-    # Закомментируй строку acme_dns выше и раскомментируй блок ниже:
+    # ── Вариант DNS-01 (Cloudflare) — включить позже ───────
+    # Раскомментируй когда получишь Cloudflare API Token:
+    # acme_dns cloudflare {env.CLOUDFLARE_API_TOKEN}
     #
+    # Или Global API Key (см. cloudflare-guide.md):
     # acme_dns cloudflare {
     #     api_key   {env.CLOUDFLARE_API_KEY}
     #     api_email {env.CLOUDFLARE_EMAIL}
