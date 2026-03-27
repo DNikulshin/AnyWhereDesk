@@ -52,7 +52,7 @@ set LOGFILE=$logFile
 echo [%date% %time%] Starting Guacamole stack >> "%LOGFILE%"
 
 :: 0. Update WSL2 portproxy (WSL IP changes after every reboot)
-for /f "tokens=1" %%i in ('wsl hostname -I 2^>nul') do set WSL_IP=%%i
+for /f "tokens=1" %%i in ('wsl -d Ubuntu -- hostname -i 2^>nul') do set WSL_IP=%%i
 netsh interface portproxy delete v4tov4 listenport=80  listenaddress=0.0.0.0 > nul 2>&1
 netsh interface portproxy delete v4tov4 listenport=443 listenaddress=0.0.0.0 > nul 2>&1
 netsh interface portproxy add v4tov4 listenaddress=0.0.0.0 listenport=80  connectaddress=%WSL_IP% connectport=80
