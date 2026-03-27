@@ -31,11 +31,15 @@ Write-Host "  AnyWhereDesk | Stage 2 — WSL2 + Ubuntu" -ForegroundColor Blue
 Write-Host "===========================================" -ForegroundColor Blue
 
 # ── Проверка: WSL уже установлен? ───────────────────────
+# Используем реестр — wsl --list --quiet возвращает UTF-16,
+# что в PS5.1 на русской Windows не матчится через -match
 Write-Step "Проверка существующих WSL-дистрибутивов..."
-$distros = wsl --list --quiet 2>$null
-if ($distros -match 'Ubuntu') {
+$lxss = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Lxss"
+$ubuntuExists = Get-ItemProperty "$lxss\*" -ErrorAction SilentlyContinue |
+    Where-Object { $_.DistributionName -match '^Ubuntu' }
+if ($ubuntuExists) {
     Write-WARN "Ubuntu уже установлена. Переходи к: stage3-wsl-configure.ps1"
-    wsl --list --verbose
+    Write-OK "BasePath: $($ubuntuExists.BasePath)"
     exit 0
 }
 Write-OK "Ubuntu не найдена — начинаем установку"
@@ -60,10 +64,11 @@ Write-OK "Команда установки выполнена"
 Write-Step "Ожидание завершения установки (20 сек)..."
 Start-Sleep -Seconds 20
 
-$distros = wsl --list --quiet 2>$null
-if ($distros -match 'Ubuntu') {
+$ubuntuExists = Get-ItemProperty "$lxss\*" -ErrorAction SilentlyContinue |
+    Where-Object { $_.DistributionName -match '^Ubuntu' }
+if ($ubuntuExists) {
     Write-OK "Ubuntu успешно установлена"
-    wsl --list --verbose
+    Write-OK "BasePath: $($ubuntuExists.BasePath)"
     Write-Host ""
     Write-Host "===========================================" -ForegroundColor Green
     Write-Host "  Stage 2 завершён!" -ForegroundColor Green
