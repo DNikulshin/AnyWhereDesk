@@ -1,0 +1,20 @@
+# Claude Code settings
+.claude/
+
+# Environment files with secrets
+guac-stack/.env
+
+# Runtime data (generated on deployment)
+guac-stack/dbdata/
+guac-stack/backups/
+guac-stack/recordings/
+guac-stack/shared_files/
+guac-stack/caddy/
+guac-stack/init/initdb.sql
+guac-stack/extensions/*.jar
+guac-stack/ddns.log
+guac-stack/backup.log
+
+# Windows scripts log
+windows/startup.log
+C:/Scripts/
