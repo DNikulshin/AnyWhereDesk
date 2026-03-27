@@ -1,0 +1,63 @@
+# =============================================================
+# Caddyfile — Apache Guacamole reverse proxy с SSL
+# Переменные DOMAIN, CLOUDFLARE_API_TOKEN берутся из .env
+# =============================================================
+
+{
+    email your@email.com      # Замени на свой email (для уведомлений Let's Encrypt)
+    admin off
+
+    # ── Вариант 1 (рекомендуется): API Token ──────────────
+    # Создаётся на cloudflare.com → My Profile → API Tokens
+    acme_dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+
+    # ── Вариант 2: Global API Key ──────────────────────────
+    # Использовать если API Token недоступен (см. cloudflare-guide.md)
+    # Закомментируй строку acme_dns выше и раскомментируй блок ниже:
+    #
+    # acme_dns cloudflare {
+    #     api_key   {env.CLOUDFLARE_API_KEY}
+    #     api_email {env.CLOUDFLARE_EMAIL}
+    # }
+}
+
+{$DOMAIN} {
+
+    # Редирект корня на /guacamole/
+    redir / /guacamole/ 308
+
+    # ── Реверс-прокси с таймаутами для RDP/VNC (FIX#3) ───
+    reverse_proxy guac-client:8080 {
+        flush_interval -1               # Отключаем буферизацию (WebSocket/RDP)
+
+        transport http {
+            dial_timeout             10s
+            response_header_timeout  30s
+            keepalive                90s   # Держим соединение для длинных RDP-сессий
+            keepalive_idle_conns     10
+        }
+
+        header_up Host              {host}
+        header_up X-Real-IP         {remote_host}
+        header_up X-Forwarded-For   {remote_host}
+        header_up X-Forwarded-Proto https
+    }
+
+    # ── Заголовки безопасности ────────────────────────────
+    header {
+        Strict-Transport-Security "max-age=31536000; includeSubDomains"
+        X-Content-Type-Options    nosniff
+        X-Frame-Options           SAMEORIGIN
+        -Server                             # Скрываем версию Caddy
+    }
+
+    # ── Логи ─────────────────────────────────────────────
+    log {
+        output file /data/access.log {
+            roll_size  20mb
+            roll_keep  10
+        }
+        format json
+        level  INFO
+    }
+}
