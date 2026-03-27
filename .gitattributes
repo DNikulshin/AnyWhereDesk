@@ -1,0 +1,13 @@
+# Shell scripts — always LF (CRLF breaks bash in WSL/Linux)
+*.sh            text eol=lf
+
+# PowerShell scripts — LF (PS5.1+ handles both, stays consistent)
+*.ps1           text eol=lf
+
+# Docker / config files — LF (run in Linux containers)
+*.yml           text eol=lf
+*.yaml          text eol=lf
+Dockerfile*     text eol=lf
+Caddyfile       text eol=lf
+.env*           text eol=lf
+*.md            text eol=lf
