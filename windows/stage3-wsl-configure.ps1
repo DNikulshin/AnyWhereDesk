@@ -46,12 +46,16 @@ if (-not $WSLPassword) {
 }
 
 # ── Проверка: WSL Ubuntu есть? ───────────────────────────
+# Реестр вместо wsl --list (UTF-16 не матчится в PS5.1)
 Write-Step "Проверка WSL Ubuntu..."
-$distros = wsl --list --quiet 2>$null
-if (-not ($distros -match 'Ubuntu')) {
+$lxss = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Lxss"
+$ubuntuEntry = Get-ItemProperty "$lxss\*" -ErrorAction SilentlyContinue |
+    Where-Object { $_.DistributionName -match '^Ubuntu' } |
+    Select-Object -First 1
+if (-not $ubuntuEntry) {
     Write-FAIL "Ubuntu не найдена. Сначала запусти: stage2-wsl-install.ps1"
 }
-Write-OK "Ubuntu найдена"
+Write-OK "Ubuntu найдена: $($ubuntuEntry.DistributionName)"
 
 # ── Создание пользователя ────────────────────────────────
 Write-Step "Создание пользователя '$WSLUser' в WSL..."
