@@ -78,7 +78,7 @@ ok "Скрипты скопированы"
 # ── Проверка .env ────────────────────────────────────────
 step "Проверка .env..."
 if [ ! -f "$DEST/.env" ]; then
-    fail ".env не найден: $DEST/.env\nСоздай файл и заполни DB_PASSWORD и CLOUDFLARE_API_TOKEN"
+    fail ".env не найден: $DEST/.env\nСоздай файл и заполни DB_PASSWORD и DOMAIN"
 fi
 
 # Проверяем что пароли не placeholder
@@ -90,14 +90,15 @@ if [ -z "$DB_PWD" ] || [ "$DB_PWD" = "ЗАМЕНИТЕ_НА_СЛОЖНЫЙ_ПА�
     fail "DB_PASSWORD не заполнен в .env"
 fi
 if [ -z "$CF_TOKEN" ]; then
-    fail "CLOUDFLARE_API_TOKEN не заполнен в .env"
+    warn "CLOUDFLARE_API_TOKEN не задан — SSL через HTTP-01 (нужны открытые порты 80/443)"
+else
+    ok "CLOUDFLARE_API_TOKEN: установлен (DNS-01 challenge)"
 fi
 if [ -z "$DOMAIN_VAL" ] || [ "$DOMAIN_VAL" = "your-domain.com" ]; then
     warn "DOMAIN=your-domain.com (placeholder) — SSL не будет работать до замены"
 fi
 
 ok "DB_PASSWORD: установлен"
-ok "CLOUDFLARE_API_TOKEN: установлен"
 ok "DOMAIN: $DOMAIN_VAL"
 
 # ── Создание директорий стека ────────────────────────────
