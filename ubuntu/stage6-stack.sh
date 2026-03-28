@@ -56,8 +56,11 @@ for f in docker-compose.yml Dockerfile.caddy Caddyfile; do
     fi
 done
 
-# .env — копируем только если ещё нет
-if [ ! -f "$DEST/.env" ]; then
+# .env — приоритет: $SRC/.env (боевой) > $DEST/.env (существующий) > $SRC/.env.example
+if [ -f "$SRC/.env" ]; then
+    cp "$SRC/.env" "$DEST/.env"
+    ok ".env скопирован из исходников (guac-stack/.env)"
+elif [ ! -f "$DEST/.env" ]; then
     if [ -f "$SRC/.env.example" ]; then
         cp "$SRC/.env.example" "$DEST/.env"
         warn ".env создан из .env.example — ЗАПОЛНИ ПАРОЛИ перед запуском!"
@@ -115,10 +118,20 @@ if [ -f "$JAR_FILE" ]; then
     ok "TOTP jar уже существует: $JAR_FILE"
 else
     warn "Скачивание TOTP jar (версия $GUAC_VERSION)..."
-    if curl -fsSL "https://downloads.apache.org/guacamole/${GUAC_VERSION}/binary/guacamole-auth-totp-${GUAC_VERSION}.tar.gz" \
-        | tar xz --strip-components=1 -C "$DEST/extensions/" '*/guacamole-auth-totp-*.jar' 2>/dev/null; then
-        ok "TOTP jar скачан"
-    else
+    TOTP_URLS=(
+        "https://downloads.apache.org/guacamole/${GUAC_VERSION}/binary/guacamole-auth-totp-${GUAC_VERSION}.tar.gz"
+        "https://archive.apache.org/dist/guacamole/${GUAC_VERSION}/binary/guacamole-auth-totp-${GUAC_VERSION}.tar.gz"
+    )
+    TOTP_OK=false
+    for url in "${TOTP_URLS[@]}"; do
+        if curl -fsSL "$url" \
+            | tar xz --wildcards --strip-components=1 -C "$DEST/extensions/" '*/guacamole-auth-totp-*.jar' 2>/dev/null; then
+            ok "TOTP jar скачан из: $url"
+            TOTP_OK=true
+            break
+        fi
+    done
+    if [ "$TOTP_OK" = false ]; then
         warn "Не удалось скачать TOTP jar — 2FA не будет работать"
         warn "Скачай вручную: https://guacamole.apache.org/releases/${GUAC_VERSION}/"
     fi
