@@ -1,13 +1,13 @@
-﻿#Requires -RunAsAdministrator
+﻿﻿#Requires -RunAsAdministrator
 <#
 .SYNOPSIS
     Полная диагностика системы — запускать из SSH -> PowerShell
     Команда: powershell -ExecutionPolicy Bypass -File recovery\status.ps1
 #>
 
-[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+[Console]::OutputEncoding = New-Object System.Text.UTF8Encoding $false
 $OutputEncoding = New-Object System.Text.UTF8Encoding $false
-if ($PSVersionTable.PSVersion.Major -lt 7) { chcp 65001 | Out-Null }
+
 
 function Write-Section { param($m) Write-Host "`n── $m ──" -ForegroundColor Cyan }
 function Write-OK       { param($m) Write-Host "  [OK] $m" -ForegroundColor Green }

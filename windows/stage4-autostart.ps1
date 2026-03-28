@@ -1,4 +1,4 @@
-﻿#Requires -RunAsAdministrator
+﻿﻿#Requires -RunAsAdministrator
 <#
 .SYNOPSIS
     Stage 4 / 4 — Автозапуск Docker + Guacamole при старте Windows
@@ -21,9 +21,9 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
-[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+[Console]::OutputEncoding = New-Object System.Text.UTF8Encoding $false
 $OutputEncoding = New-Object System.Text.UTF8Encoding $false
-if ($PSVersionTable.PSVersion.Major -lt 7) { chcp 65001 | Out-Null }
+
 
 function Write-Step { param($m) Write-Host "`n[$(Get-Date -f 'HH:mm:ss')] >> $m" -ForegroundColor Cyan }
 function Write-OK   { param($m) Write-Host "  [OK] $m" -ForegroundColor Green }
