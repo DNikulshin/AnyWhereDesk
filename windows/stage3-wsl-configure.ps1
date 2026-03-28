@@ -31,6 +31,20 @@ function Write-OK   { param($m) Write-Host "  [OK] $m" -ForegroundColor Green }
 function Write-WARN { param($m) Write-Host "  [!!] $m" -ForegroundColor Yellow }
 function Write-FAIL { param($m) Write-Host "  [XX] $m" -ForegroundColor Red; throw $m }
 
+# ── Helper: запуск bash-скрипта в WSL без BOM-проблем ────
+# PowerShell 5.1 вставляет BOM (EF BB BF) при pipe here-string → wsl bash.
+# Обходим: кодируем скрипт в base64, декодируем внутри bash.
+function Invoke-WslBash {
+    param(
+        [Parameter(Mandatory)][string]$Script,
+        [string]$User = "root"
+    )
+    $clean = $Script.TrimStart([char]0xFEFF)
+    $bytes = [System.Text.UTF8Encoding]::new($false).GetBytes($clean)
+    $b64   = [Convert]::ToBase64String($bytes)
+    return (wsl -d Ubuntu -u $User bash -c "echo '$b64' | base64 -d | bash" 2>&1)
+}
+
 Write-Host ""
 Write-Host "=============================================" -ForegroundColor Blue
 Write-Host "  AnyWhereDesk | Stage 3 — WSL Configure" -ForegroundColor Blue
@@ -70,7 +84,7 @@ fi
 echo '$WSLUser`:$WSLPassword' | chpasswd
 usermod -aG sudo '$WSLUser'
 "@
-$r = $createScript | wsl -d Ubuntu -u root bash
+$r = Invoke-WslBash -Script $createScript -User root
 Write-OK "Пользователь: $r"
 
 # ── Установка DefaultUid ─────────────────────────────────
@@ -104,16 +118,17 @@ else
     echo "configured"
 fi
 "@
-$r = $sudoersScript | wsl -d Ubuntu -u root bash
+$r = Invoke-WslBash -Script $sudoersScript -User root
 Write-OK "sudoers: $r"
 
 # ── Базовые пакеты ───────────────────────────────────────
 Write-Step "Обновление apt + базовые пакеты (ca-certificates, curl, netcat)..."
-@"
+$aptScript = @"
 export DEBIAN_FRONTEND=noninteractive
 apt-get update -qq
 apt-get install -y -qq ca-certificates curl gnupg lsb-release netcat-openbsd jq 2>/dev/null
-"@ | wsl -d Ubuntu -u root bash | Where-Object { $_ -notmatch '^(Get:|Hit:|Reading|Building|Selecting)' } | ForEach-Object { Write-Host "  $_" -ForegroundColor Gray }
+"@
+Invoke-WslBash -Script $aptScript -User root | Where-Object { $_ -notmatch '^(Get:|Hit:|Reading|Building|Selecting)' } | ForEach-Object { Write-Host "  $_" -ForegroundColor Gray }
 Write-OK "Базовые пакеты установлены"
 
 # ── Символическая ссылка ~/AnyWhereDesk ─────────────────
@@ -136,7 +151,7 @@ else
     echo "created: `$LINK -> `$TARGET"
 fi
 "@
-$r = $linkScript | wsl -d Ubuntu -u $WSLUser bash
+$r = Invoke-WslBash -Script $linkScript -User $WSLUser
 Write-OK "Ссылка: $r"
 
 # ── Проверка ─────────────────────────────────────────────
