@@ -1,4 +1,4 @@
-﻿﻿#Requires -RunAsAdministrator
+﻿#Requires -RunAsAdministrator
 <#
 .SYNOPSIS
     Восстановление WSL — запускать из SSH -> PowerShell

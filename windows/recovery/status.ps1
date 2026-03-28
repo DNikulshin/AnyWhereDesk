@@ -1,4 +1,4 @@
-﻿﻿#Requires -RunAsAdministrator
+﻿#Requires -RunAsAdministrator
 <#
 .SYNOPSIS
     Полная диагностика системы — запускать из SSH -> PowerShell

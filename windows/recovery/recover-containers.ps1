@@ -1,4 +1,4 @@
-﻿﻿#Requires -RunAsAdministrator
+﻿#Requires -RunAsAdministrator
 <#
 .SYNOPSIS
     Восстановление контейнеров Guacamole — запускать из SSH -> PowerShell
