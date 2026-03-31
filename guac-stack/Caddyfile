@@ -4,7 +4,7 @@
 # =============================================================
 
 {
-    email your@email.com      # Замени на свой email (для уведомлений Let's Encrypt)
+    email {$ACME_EMAIL}
     admin off
 
     # ── Текущий режим: HTTP-01 challenge (порт 80) ─────────

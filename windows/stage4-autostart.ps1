@@ -131,8 +131,44 @@ Register-ScheduledTask `
 
 Write-OK "Задача '$taskName' создана (SYSTEM, AtStartup + 30s delay)"
 
+# ── WSLKeepAlive (удерживает WSL в рабочем состоянии) ────
+Write-Step "Создание задачи WSLKeepAlive (запуск от '$WSLUser')..."
+$kaTaskName = "WSLKeepAlive"
+Unregister-ScheduledTask -TaskName $kaTaskName -Confirm:$false -ErrorAction SilentlyContinue
+
+$kaAction    = New-ScheduledTaskAction -Execute 'wsl.exe' -Argument "-d Ubuntu -- bash -c `"tail -f /dev/null`""
+$kaTrigger   = New-ScheduledTaskTrigger -AtStartup
+$kaSettings  = New-ScheduledTaskSettingsSet -ExecutionTimeLimit 0 -MultipleInstances IgnoreNew -RunOnlyIfNetworkAvailable:$false
+$kaPrincipal = New-ScheduledTaskPrincipal -UserId "$env:COMPUTERNAME\$WSLUser" -LogonType S4U -RunLevel Highest
+
+Register-ScheduledTask `
+    -TaskName $kaTaskName `
+    -Action $kaAction `
+    -Trigger $kaTrigger `
+    -Settings $kaSettings `
+    -Principal $kaPrincipal `
+    -Force | Out-Null
+
+Write-OK "Задача '$kaTaskName' создана (S4U: $WSLUser, AtStartup)"
+
+# ── RDP: ограничить доступ только из WSL/Docker ──────────
+Write-Step "Ограничение RDP только для WSL/Docker сети..."
+$rdpAllowedAddresses = @("127.0.0.1", "172.16.0.0/12", "172.21.0.0/20")
+$rdpRules = Get-NetFirewallRule -Direction Inbound -Action Allow -ErrorAction SilentlyContinue |
+    Get-NetFirewallPortFilter |
+    Where-Object { $_.LocalPort -eq '3389' } |
+    ForEach-Object { Get-NetFirewallRule -AssociatedNetFirewallPortFilter $_ }
+if ($rdpRules) {
+    foreach ($rule in $rdpRules) {
+        Set-NetFirewallRule -Name $rule.Name -RemoteAddress $rdpAllowedAddresses
+    }
+    Write-OK "RDP ограничен: только 127.0.0.1 и 172.16.0.0/12"
+} else {
+    Write-WARN "RDP правила не найдены — пропускаем"
+}
+
 # ── Проверка ─────────────────────────────────────────────
-Write-Step "Проверка задачи..."
+Write-Step "Проверка задач..."
 $task = Get-ScheduledTask -TaskName $taskName
 Write-OK "Задача: $($task.TaskName) | Состояние: $($task.State)"
 
