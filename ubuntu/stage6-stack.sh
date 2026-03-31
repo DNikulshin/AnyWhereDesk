@@ -95,7 +95,14 @@ fi
 if [ -z "$CF_TOKEN" ]; then
     warn "CLOUDFLARE_API_TOKEN не задан — SSL через HTTP-01 (нужны открытые порты 80/443)"
 else
-    ok "CLOUDFLARE_API_TOKEN: установлен (DNS-01 challenge)"
+    # Проверяем активирован ли DNS-01 в Caddyfile
+    if grep -q '^\s*acme_dns cloudflare' "$DEST/Caddyfile" 2>/dev/null; then
+        ok "CLOUDFLARE_API_TOKEN: установлен, DNS-01 challenge активен"
+    else
+        ok "CLOUDFLARE_API_TOKEN: установлен"
+        warn "DNS-01 НЕ активен — раскомментируй строку 'acme_dns cloudflare' в Caddyfile"
+        warn "Подробно: ~/AnyWhereDesk/cloudflare-guide.md"
+    fi
 fi
 if [ -z "$DOMAIN_VAL" ] || [ "$DOMAIN_VAL" = "your-domain.com" ]; then
     warn "DOMAIN=your-domain.com (placeholder) — SSL не будет работать до замены"
